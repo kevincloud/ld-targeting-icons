@@ -43,44 +43,99 @@ fi
 API_BASE="https://app.launchdarkly.com/api/v2"
 FLAG_URL="$API_BASE/flags/$LD_PROJECT_KEY/$FLAG_KEY"
 
-# Function to update flag targeting
+# Function to turn flag ON and set rollout percentage
+turn_flag_on_and_set_percentage() {
+    local percentage=$1
+    local step_name=$2
+    
+    echo -e "${BLUE}Turning flag ON and setting rollout to ${percentage}% - ${step_name}${NC}"
+    
+    # First turn flag on
+    local flag_on_payload=$(cat <<FLAGON_EOF
+{
+  "comment": "Demo rollout - ${step_name}",
+  "environmentKey": "$LD_ENVIRONMENT_KEY",
+  "instructions": [
+    {
+      "kind": "turnFlagOn"
+    }
+  ]
+}
+FLAGON_EOF
+    )
+    
+    local flag_response=$(curl -s -w "%{http_code}" \
+        -X PATCH \
+        -H "Authorization: $LD_API_TOKEN" \
+        -H "Content-Type: application/json; domain-model=launchdarkly.semanticpatch" \
+        -d "$flag_on_payload" \
+        "$FLAG_URL")
+    
+    local flag_http_code="${flag_response: -3}"
+    
+    if [ "$flag_http_code" -eq 200 ]; then
+        echo -e "${GREEN}✓ Flag is now ON${NC}"
+        
+        # Now set the rollout percentage
+        local rollout_payload=$(cat <<ROLLOUT_EOF
+[
+  {
+    "op": "replace",
+    "path": "/environments/$LD_ENVIRONMENT_KEY/fallthrough/rollout/variations/0/weight",
+    "value": $((percentage * 1000))
+  },
+  {
+    "op": "replace",
+    "path": "/environments/$LD_ENVIRONMENT_KEY/fallthrough/rollout/variations/1/weight", 
+    "value": $((100000 - percentage * 1000))
+  }
+]
+ROLLOUT_EOF
+        )
+        
+        local rollout_response=$(curl -s -w "%{http_code}" \
+            -X PATCH \
+            -H "Authorization: $LD_API_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$rollout_payload" \
+            "$FLAG_URL")
+        
+        local rollout_http_code="${rollout_response: -3}"
+        
+        if [ "$rollout_http_code" -eq 200 ]; then
+            echo -e "${GREEN}✓ Successfully set to ${percentage}%${NC}"
+        else
+            echo -e "${RED}✗ Failed to set rollout to ${percentage}%${NC}"
+            exit 1
+        fi
+    else
+        echo -e "${RED}✗ Failed to turn flag on${NC}"
+        exit 1
+    fi
+}
+
+# Function to update flag targeting (for subsequent rollout changes)
 update_flag_targeting() {
     local percentage=$1
     local step_name=$2
     
     echo -e "${BLUE}Setting rollout to ${percentage}% - ${step_name}${NC}"
     
-    # JSON payload for percentage rollout
-    local json_payload=$(cat <<EOF
-{
-  "comment": "Demo rollout - ${step_name}",
-  "instructions": [
-    {
-      "kind": "replaceTargeting",
-      "value": {
-        "on": true,
-        "targets": [],
-        "rules": [],
-        "fallthrough": {
-          "rollout": {
-            "variations": [
-              {
-                "variation": 0,
-                "weight": $((100000 - percentage * 1000))
-              },
-              {
-                "variation": 1,
-                "weight": $((percentage * 1000))
-              }
-            ]
-          }
-        },
-        "offVariation": 0
-      }
-    }
-  ]
-}
-EOF
+    # JSON payload for percentage rollout (using JSON Patch format)
+    local json_payload=$(cat <<ROLLOUT_EOF
+[
+  {
+    "op": "replace",
+    "path": "/environments/$LD_ENVIRONMENT_KEY/fallthrough/rollout/variations/0/weight",
+    "value": $((percentage * 1000))
+  },
+  {
+    "op": "replace",
+    "path": "/environments/$LD_ENVIRONMENT_KEY/fallthrough/rollout/variations/1/weight", 
+    "value": $((100000 - percentage * 1000))
+  }
+]
+ROLLOUT_EOF
     )
     
     # Make API call
@@ -103,35 +158,28 @@ EOF
     fi
 }
 
-# Function to turn flag completely off
-turn_flag_off() {
-    echo -e "${YELLOW}Turning flag OFF (0% rollout)${NC}"
+# Function to turn flag off and set rollout to 0%
+turn_flag_off_and_set_0_percent() {
+    echo -e "${YELLOW}Turning flag OFF and setting rollout to 0%${NC}"
     
-    local json_payload=$(cat <<EOF
+    # First turn flag off
+    local json_payload=$(cat <<TURNOFF_EOF
 {
   "comment": "Demo rollout - Starting at 0%",
+  "environmentKey": "$LD_ENVIRONMENT_KEY",
   "instructions": [
     {
-      "kind": "replaceTargeting",
-      "value": {
-        "on": false,
-        "targets": [],
-        "rules": [],
-        "fallthrough": {
-          "variation": 0
-        },
-        "offVariation": 0
-      }
+      "kind": "turnFlagOff"
     }
   ]
 }
-EOF
+TURNOFF_EOF
     )
     
     local response=$(curl -s -w "%{http_code}" \
         -X PATCH \
         -H "Authorization: $LD_API_TOKEN" \
-        -H "Content-Type: application/json" \
+        -H "Content-Type: application/json; domain-model=launchdarkly.semanticpatch" \
         -d "$json_payload" \
         "$FLAG_URL")
     
@@ -140,6 +188,38 @@ EOF
     
     if [ "$http_code" -eq 200 ]; then
         echo -e "${GREEN}✓ Flag is now OFF${NC}"
+        
+        # Now set rollout to 0% (in case flag gets turned on later)
+        local rollout_payload=$(cat <<ROLLOUT0_EOF
+[
+  {
+    "op": "replace",
+    "path": "/environments/$LD_ENVIRONMENT_KEY/fallthrough/rollout/variations/0/weight",
+    "value": 0
+  },
+  {
+    "op": "replace",
+    "path": "/environments/$LD_ENVIRONMENT_KEY/fallthrough/rollout/variations/1/weight", 
+    "value": 100000
+  }
+]
+ROLLOUT0_EOF
+        )
+        
+        local rollout_response=$(curl -s -w "%{http_code}" \
+            -X PATCH \
+            -H "Authorization: $LD_API_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$rollout_payload" \
+            "$FLAG_URL")
+        
+        local rollout_http_code="${rollout_response: -3}"
+        
+        if [ "$rollout_http_code" -eq 200 ]; then
+            echo -e "${GREEN}✓ Rollout set to 0%${NC}"
+        else
+            echo -e "${RED}✗ Failed to set rollout to 0%${NC}"
+        fi
     else
         echo -e "${RED}✗ Failed to turn flag off (HTTP $http_code)${NC}"
         echo "Response: $response_body"
@@ -154,13 +234,13 @@ echo -e "${BLUE}Project: $LD_PROJECT_KEY${NC}"
 echo -e "${BLUE}Environment: $LD_ENVIRONMENT_KEY${NC}"
 echo ""
 
-# Step 0: Turn flag off
-turn_flag_off
+# Step 0: Turn flag off and set rollout to 0%
+turn_flag_off_and_set_0_percent
 echo -e "${YELLOW}Waiting 5 seconds before starting rollout...${NC}"
 sleep 5
 
-# Step 1: 25% rollout
-update_flag_targeting 25 "Initial rollout"
+# Step 1: Turn flag on and set to 25% rollout
+turn_flag_on_and_set_percentage 25 "Initial rollout"
 echo -e "${YELLOW}Waiting 10 seconds...${NC}"
 sleep 10
 
