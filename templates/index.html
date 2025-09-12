@@ -134,6 +134,203 @@
             z-index: 1000;
         }
         
+        .admin-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 10px 15px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 1000;
+            transition: background 0.3s ease;
+        }
+        
+        .admin-button:hover {
+            background: #2980b9;
+        }
+        
+        .admin-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+        }
+        
+        .admin-modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .admin-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 15px;
+        }
+        
+        .admin-header h2 {
+            margin: 0;
+            color: #2c3e50;
+        }
+        
+        .close-button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #7f8c8d;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .close-button:hover {
+            color: #e74c3c;
+        }
+        
+        .admin-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+        
+        .admin-section h3 {
+            margin: 0 0 15px 0;
+            color: #34495e;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .form-group input[type="file"] {
+            width: 100%;
+            padding: 8px;
+            border: 2px dashed #ddd;
+            border-radius: 5px;
+            background: white;
+        }
+        
+        .form-group button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-top: 5px;
+        }
+        
+        .form-group button:hover {
+            background: #2980b9;
+        }
+        
+        .form-group button.danger {
+            background: #e74c3c;
+        }
+        
+        .form-group button.danger:hover {
+            background: #c0392b;
+        }
+        
+        .form-group button.success {
+            background: #27ae60;
+        }
+        
+        .form-group button.success:hover {
+            background: #229954;
+        }
+        
+        .image-info {
+            background: #e8f4fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .image-info h4 {
+            margin: 0 0 10px 0;
+            color: #2980b9;
+        }
+        
+        .image-info p {
+            margin: 5px 0;
+            color: #555;
+        }
+        
+        .selection-mode {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: bold;
+            color: #856404;
+        }
+        
+        .square.selectable {
+            cursor: pointer;
+            border: 2px solid transparent;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+        
+        .square.selectable:hover {
+            border-color: #3498db;
+        }
+        
+        .square.selected {
+            box-shadow: 0 0 0 2px #f39c12, 0 0 5px rgba(243, 156, 18, 0.5);
+        }
+        
+        .grid.selection-mode {
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+        
         .connected {
             background: #27ae60;
             color: white;
@@ -185,7 +382,68 @@
     </style>
 </head>
 <body>
+    <button class="admin-button" id="adminButton">⚙️ Admin</button>
     <div class="connection-status" id="connectionStatus">Connecting...</div>
+    
+    <!-- Admin Modal -->
+    <div class="admin-modal" id="adminModal">
+        <div class="admin-content">
+            <div class="admin-header">
+                <h2>Admin Panel</h2>
+                <button class="close-button" id="closeAdmin">&times;</button>
+            </div>
+            
+            <!-- Image Upload Section -->
+            <div class="admin-section">
+                <h3>🖼️ Custom Image</h3>
+                <div class="image-info">
+                    <h4>Image Requirements:</h4>
+                    <p><strong>Recommended Size:</strong> 600px × 750px</p>
+                    <p><strong>Aspect Ratio:</strong> 4:5 (width:height)</p>
+                    <p><strong>Format:</strong> PNG, JPG, or GIF</p>
+                    <p><strong>Note:</strong> The image will be divided into a 40×50 grid of squares. Higher resolution images work better.</p>
+                </div>
+                
+                <div class="form-group">
+                    <label for="imageUpload">Upload Custom Image:</label>
+                    <input type="file" id="imageUpload" accept="image/*">
+                </div>
+                
+                <div class="form-group">
+                    <button id="uploadButton">Upload Image</button>
+                    <button id="resetImageButton" class="danger">Reset to Default Dino</button>
+                </div>
+            </div>
+            
+            <!-- Context Selection Section -->
+            <div class="admin-section">
+                <h3>🎯 Beta User Targeting</h3>
+                <p>Select squares to mark those contexts as "beta" users for targeted rollouts in LaunchDarkly.</p>
+                
+                <div class="image-info">
+                    <h4>Selection Tips:</h4>
+                    <p><strong>Click & Drag:</strong> Click and drag to select multiple squares at once</p>
+                    <p><strong>Hold Shift:</strong> Hold Shift while selecting to add to your current selection</p>
+                    <p><strong>Right Click:</strong> Right-click anywhere to clear your current selection and start over</p>
+                    <p><strong>Single Click:</strong> Click individual squares to toggle selection</p>
+                </div>
+                
+                <div id="selectionModeIndicator" class="selection-mode" style="display: none;">
+                    Selection Mode Active - Use the tips above to select beta users
+                </div>
+                
+                <div class="form-group">
+                    <button id="startSelectionButton" class="success">Start Selection Mode</button>
+                    <button id="stopSelectionButton" style="display: none;">Stop Selection</button>
+                    <button id="clearSelectionButton">Clear All Selections</button>
+                </div>
+                
+                <div class="form-group">
+                    <p><strong>Selected Beta Users:</strong> <span id="selectedCount">0</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
     
     <div class="header">
         <h1>LaunchDarkly Targeting Visualization</h1>
@@ -228,6 +486,8 @@
     <script>
         const socket = io();
         let currentData = [];
+        let selectionMode = false;
+        let selectedContexts = new Set();
         
         // DOM elements
         const connectionStatus = document.getElementById('connectionStatus');
@@ -239,6 +499,19 @@
         const falsePercent = document.getElementById('falsePercent');
         const loading = document.getElementById('loading');
         const grid = document.getElementById('grid');
+        
+        // Admin elements
+        const adminButton = document.getElementById('adminButton');
+        const adminModal = document.getElementById('adminModal');
+        const closeAdmin = document.getElementById('closeAdmin');
+        const imageUpload = document.getElementById('imageUpload');
+        const uploadButton = document.getElementById('uploadButton');
+        const resetImageButton = document.getElementById('resetImageButton');
+        const startSelectionButton = document.getElementById('startSelectionButton');
+        const stopSelectionButton = document.getElementById('stopSelectionButton');
+        const clearSelectionButton = document.getElementById('clearSelectionButton');
+        const selectionModeIndicator = document.getElementById('selectionModeIndicator');
+        const selectedCount = document.getElementById('selectedCount');
         
         // Socket event handlers
         socket.on('connect', function() {
@@ -282,6 +555,7 @@
             renderGrid();
         }
         
+        
         // Update statistics
         function updateStats() {
             const trueValues = currentData.filter(val => val === true).length;
@@ -308,6 +582,7 @@
                 const square = document.createElement('div');
                 square.className = `square ${value ? 'true' : 'false'}`;
                 square.title = `Context ${index + 1}: ${value}`;
+                square.dataset.index = index;
                 
                 // Calculate grid position
                 const col = index % gridCols;
@@ -326,9 +601,211 @@
             });
         }
         
+        
+        // Helper function to toggle square selection
+        function toggleSquareSelection(index) {
+            const square = document.querySelector(`[data-index="${index}"]`);
+            if (selectedContexts.has(index)) {
+                selectedContexts.delete(index);
+                square.classList.remove('selected');
+            } else {
+                selectedContexts.add(index);
+                square.classList.add('selected');
+            }
+            updateSelectedCount();
+        }
+        
+        
+        
+        // Admin functions
+        function showAdmin() {
+            adminModal.classList.add('show');
+        }
+        
+        function hideAdmin() {
+            adminModal.classList.remove('show');
+        }
+        
+        function startSelectionMode() {
+            selectionMode = true;
+            selectionModeIndicator.style.display = 'block';
+            
+            // Hide the admin modal and change admin button to "Confirm Selection"
+            hideAdmin();
+            adminButton.textContent = '✓ Confirm Selection';
+            adminButton.style.background = '#27ae60';
+            
+            // Just add selection mode class - don't touch the squares at all
+            grid.classList.add('selection-mode');
+        }
+        
+        function stopSelectionMode() {
+            selectionMode = false;
+            selectionModeIndicator.style.display = 'none';
+            
+            // Restore admin button
+            adminButton.textContent = '⚙️ Admin';
+            adminButton.style.background = '#3498db';
+            
+            // Just remove selection mode class
+            grid.classList.remove('selection-mode');
+        }
+        
+        function clearSelection() {
+            selectedContexts.clear();
+            updateSelectedCount();
+            
+            // Remove selected class from all squares
+            document.querySelectorAll('.square.selected').forEach(square => {
+                square.classList.remove('selected');
+            });
+            
+            // Also clear on server
+            fetch('/api/clear-beta-selection', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Selection cleared on server');
+                })
+                .catch(error => console.error('Error clearing selection:', error));
+        }
+        
+        function updateSelectedCount() {
+            selectedCount.textContent = selectedContexts.size;
+            
+            // Send selection to server
+            if (selectedContexts.size > 0) {
+                fetch('/api/set-beta-selection', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        selected_indices: Array.from(selectedContexts)
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Beta selection updated on server');
+                })
+                .catch(error => console.error('Error updating selection:', error));
+            }
+        }
+        
+        function uploadImage() {
+            const file = imageUpload.files[0];
+            if (!file) {
+                alert('Please select an image file first.');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('image', file);
+            
+            uploadButton.textContent = 'Uploading...';
+            uploadButton.disabled = true;
+            
+            fetch('/api/upload-image', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Image uploaded successfully! The page will refresh to show your new image.');
+                    location.reload();
+                } else {
+                    alert('Error uploading image: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error uploading image:', error);
+                alert('Error uploading image. Please try again.');
+            })
+            .finally(() => {
+                uploadButton.textContent = 'Upload Image';
+                uploadButton.disabled = false;
+            });
+        }
+        
+        function resetImage() {
+            if (confirm('Are you sure you want to reset to the default dino image?')) {
+                fetch('/api/reset-image', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('Image reset successfully! The page will refresh to show the default dino.');
+                            location.reload();
+                        } else {
+                            alert('Error resetting image: ' + data.error);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error resetting image:', error);
+                        alert('Error resetting image. Please try again.');
+                    });
+            }
+        }
+        
+        // Event listeners
+        adminButton.addEventListener('click', function() {
+            if (selectionMode) {
+                // If in selection mode, confirm selection and return to admin
+                stopSelectionMode();
+                showAdmin();
+            } else {
+                // Normal admin button behavior
+                showAdmin();
+            }
+        });
+        
+        closeAdmin.addEventListener('click', hideAdmin);
+        uploadButton.addEventListener('click', uploadImage);
+        resetImageButton.addEventListener('click', resetImage);
+        startSelectionButton.addEventListener('click', startSelectionMode);
+        stopSelectionButton.addEventListener('click', stopSelectionMode);
+        clearSelectionButton.addEventListener('click', clearSelection);
+        
+        // Simple click handler for selection mode
+        grid.addEventListener('click', function(e) {
+            if (!selectionMode) return;
+            
+            const square = e.target.closest('.square');
+            if (!square) return;
+            
+            const index = parseInt(square.dataset.index);
+            if (isNaN(index)) return;
+            
+            // Toggle selection
+            if (selectedContexts.has(index)) {
+                selectedContexts.delete(index);
+                square.classList.remove('selected');
+            } else {
+                selectedContexts.add(index);
+                square.classList.add('selected');
+            }
+            
+            updateSelectedCount();
+            
+            // Send to server
+            fetch('/api/set-beta-selection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ indices: Array.from(selectedContexts) })
+            });
+        });
+        
+        
+        // Close modal when clicking outside
+        adminModal.addEventListener('click', function(e) {
+            if (e.target === adminModal) {
+                hideAdmin();
+            }
+        });
+        
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             // Connection will be established automatically
+            updateSelectedCount();
         });
     </script>
 </body>

@@ -5,4 +5,5 @@ Flask-SocketIO==5.3.6
 launchdarkly_server_sdk==9.1.0
 ldclient==0.0.1
 names==0.3.0
+Pillow==10.0.1
 python-dotenv==1.0.1

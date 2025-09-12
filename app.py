@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 from flask_socketio import SocketIO, emit
 from dotenv import load_dotenv
 import json
@@ -7,6 +7,9 @@ from ldclient.config import Config
 import os
 import threading
 import time
+import shutil
+from werkzeug.utils import secure_filename
+from PIL import Image
 from utils.create_context import create_multi_context
 
 # Load environment variables
@@ -28,15 +31,36 @@ else:
 # Global variables
 contexts_data = []
 current_state = []
+beta_selected_indices = set()
+
+# Configuration for file uploads
+UPLOAD_FOLDER = 'static/images'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def create_contexts():
     """Create fake contexts for visualization"""
+    global beta_selected_indices
     num_contexts = 2000
     contexts_array = []
     for i in range(num_contexts):
-        context = create_multi_context()
+        is_beta = i in beta_selected_indices
+        context = create_multi_context(is_beta)
         contexts_array.append(context)
     return contexts_array
+
+def recreate_contexts():
+    """Recreate contexts when beta selection changes"""
+    global contexts_data, current_state
+    contexts_data = create_contexts()
+    current_state = evaluate_contexts(contexts_data)
+    # Emit update to all clients
+    socketio.emit('flag_update', {'data': current_state})
 
 def evaluate_contexts(contexts):
     """Evaluate all contexts against the feature flag"""
@@ -98,6 +122,115 @@ def handle_connect():
 @socketio.on('disconnect')
 def handle_disconnect():
     print('Client disconnected')
+
+# Admin API routes
+@app.route('/api/upload-image', methods=['POST'])
+def upload_image():
+    """Handle image upload"""
+    try:
+        if 'image' not in request.files:
+            return jsonify({'success': False, 'error': 'No image file provided'})
+        
+        file = request.files['image']
+        if file.filename == '':
+            return jsonify({'success': False, 'error': 'No file selected'})
+        
+        if file and allowed_file(file.filename):
+            # Create upload directory if it doesn't exist
+            os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+            
+            # Save the uploaded file as reveal-image.png (replacing the current one)
+            filename = 'reveal-image.png'
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            
+            # Process the image to ensure it's the right format
+            image = Image.open(file.stream)
+            
+            # Convert to RGB if necessary (for PNG with transparency)
+            if image.mode in ('RGBA', 'LA', 'P'):
+                # Create a white background
+                background = Image.new('RGB', image.size, (255, 255, 255))
+                if image.mode == 'P':
+                    image = image.convert('RGBA')
+                background.paste(image, mask=image.split()[-1] if image.mode == 'RGBA' else None)
+                image = background
+            
+            # Resize to recommended dimensions if needed
+            # The grid is 40x50 squares at 15px each = 600x750px
+            target_size = (600, 750)
+            if image.size != target_size:
+                image = image.resize(target_size, Image.Resampling.LANCZOS)
+            
+            # Save as PNG
+            image.save(filepath, 'PNG', optimize=True)
+            
+            return jsonify({'success': True, 'message': 'Image uploaded successfully'})
+        else:
+            return jsonify({'success': False, 'error': 'Invalid file type. Please use PNG, JPG, or GIF.'})
+    
+    except Exception as e:
+        print(f"Error uploading image: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/reset-image', methods=['POST'])
+def reset_image():
+    """Reset to default dino image"""
+    try:
+        # Path to the current image
+        current_image = os.path.join(app.config['UPLOAD_FOLDER'], 'reveal-image.png')
+        
+        # Check if there's a backup of the original dino image
+        backup_image = os.path.join(app.config['UPLOAD_FOLDER'], 'reveal-image-original.png')
+        
+        if os.path.exists(backup_image):
+            # Restore from backup
+            shutil.copy2(backup_image, current_image)
+        else:
+            # If no backup exists, we'll need to handle this case
+            # For now, just return an error
+            return jsonify({'success': False, 'error': 'Original dino image not found. Please upload a new image.'})
+        
+        return jsonify({'success': True, 'message': 'Image reset to default dino'})
+    
+    except Exception as e:
+        print(f"Error resetting image: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/set-beta-selection', methods=['POST'])
+def set_beta_selection():
+    """Set which contexts are beta users"""
+    try:
+        global beta_selected_indices
+        data = request.get_json()
+        selected_indices = data.get('selected_indices', [])
+        
+        # Update the global beta selection
+        beta_selected_indices = set(selected_indices)
+        
+        # Recreate contexts with new beta selection
+        recreate_contexts()
+        
+        return jsonify({'success': True, 'message': f'Beta selection updated: {len(selected_indices)} users'})
+    
+    except Exception as e:
+        print(f"Error setting beta selection: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/clear-beta-selection', methods=['POST'])
+def clear_beta_selection():
+    """Clear beta user selection"""
+    try:
+        global beta_selected_indices
+        beta_selected_indices = set()
+        
+        # Recreate contexts without beta selection
+        recreate_contexts()
+        
+        return jsonify({'success': True, 'message': 'Beta selection cleared'})
+    
+    except Exception as e:
+        print(f"Error clearing beta selection: {e}")
+        return jsonify({'success': False, 'error': str(e)})
 
 if __name__ == '__main__':
     # Initialize contexts

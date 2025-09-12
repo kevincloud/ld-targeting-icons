@@ -7,7 +7,7 @@ from ldclient import Context
 '''
 Construct a user context
 '''
-def create_user_context():
+def create_user_context(is_beta_user=False):
   user_key = "usr-" + str(uuid.uuid4())
   name = f'{names.get_first_name()} {names.get_last_name()}'
   plan = random.choice(['platinum', 'silver', 'gold', 'diamond', 'free'])
@@ -15,7 +15,9 @@ def create_user_context():
   metro = random.choice(['New York', 'Chicago', 'Minneapolis', 'Atlanta', 'Los Angeles', 'San Francisco', 'Denver', 'Boston'])
 
   def beta_chance():
-    if random.randint(1, 10) <= 2:
+    if is_beta_user:
+      return True
+    elif random.randint(1, 10) <= 2:
       return True
     else:
       return False
@@ -74,10 +76,10 @@ def create_organization_context():
 '''
 Construct a multi context: User, Device, and Organization
 '''
-def create_multi_context():
+def create_multi_context(is_beta_user=False):
 
   multi_context = Context.create_multi(
-  create_user_context(),
+  create_user_context(is_beta_user),
   create_device_context(),
   create_organization_context()
   )
