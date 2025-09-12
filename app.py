@@ -210,7 +210,7 @@ def set_beta_selection():
         # Recreate contexts with new beta selection
         recreate_contexts()
         
-        return jsonify({'success': True, 'message': f'Beta selection updated: {len(selected_indices)} users'})
+        return jsonify({'success': True})
     
     except Exception as e:
         print(f"Error setting beta selection: {e}")
@@ -226,10 +226,21 @@ def clear_beta_selection():
         # Recreate contexts without beta selection
         recreate_contexts()
         
-        return jsonify({'success': True, 'message': 'Beta selection cleared'})
+        return jsonify({'success': True})
     
     except Exception as e:
         print(f"Error clearing beta selection: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/get-beta-selection', methods=['GET'])
+def get_beta_selection():
+    """Get current beta user selection"""
+    try:
+        global beta_selected_indices
+        return jsonify({'success': True, 'selected_indices': list(beta_selected_indices)})
+    
+    except Exception as e:
+        print(f"Error getting beta selection: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 if __name__ == '__main__':

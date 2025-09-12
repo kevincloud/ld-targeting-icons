@@ -324,6 +324,17 @@
             box-shadow: 0 0 0 2px #f39c12, 0 0 5px rgba(243, 156, 18, 0.5);
         }
         
+        .square.range-start {
+            box-shadow: 0 0 0 2px #3498db, 0 0 8px rgba(52, 152, 219, 0.8);
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 2px #3498db, 0 0 8px rgba(52, 152, 219, 0.8); }
+            50% { box-shadow: 0 0 0 2px #3498db, 0 0 12px rgba(52, 152, 219, 1); }
+            100% { box-shadow: 0 0 0 2px #3498db, 0 0 8px rgba(52, 152, 219, 0.8); }
+        }
+        
         .grid.selection-mode {
             user-select: none;
             -webkit-user-select: none;
@@ -422,10 +433,9 @@
                 
                 <div class="image-info">
                     <h4>Selection Tips:</h4>
-                    <p><strong>Click & Drag:</strong> Click and drag to select multiple squares at once</p>
-                    <p><strong>Hold Shift:</strong> Hold Shift while selecting to add to your current selection</p>
-                    <p><strong>Right Click:</strong> Right-click anywhere to clear your current selection and start over</p>
                     <p><strong>Single Click:</strong> Click individual squares to toggle selection</p>
+                    <p><strong>Range Selection:</strong> Hold Shift + click two squares to select a rectangular range</p>
+                    <p><strong>Right Click:</strong> Right-click anywhere to clear your current selection and start over</p>
                 </div>
                 
                 <div id="selectionModeIndicator" class="selection-mode" style="display: none;">
@@ -488,6 +498,8 @@
         let currentData = [];
         let selectionMode = false;
         let selectedContexts = new Set();
+        let rangeSelectionMode = false;
+        let rangeStartIndex = -1;
         
         // DOM elements
         const connectionStatus = document.getElementById('connectionStatus');
@@ -635,8 +647,37 @@
             adminButton.textContent = '✓ Confirm Selection';
             adminButton.style.background = '#27ae60';
             
-            // Just add selection mode class - don't touch the squares at all
-            grid.classList.add('selection-mode');
+            // Fetch current selection from server and restore visual state
+            fetch('/api/get-beta-selection')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.selected_indices) {
+                        // Update selectedContexts with server state
+                        selectedContexts.clear();
+                        data.selected_indices.forEach(index => {
+                            selectedContexts.add(index);
+                        });
+                        
+                        // Update the visual state
+                        updateSelectedCount();
+                        
+                        // Add selected class to the appropriate squares
+                        const squares = document.querySelectorAll('.square');
+                        squares.forEach((square, index) => {
+                            if (selectedContexts.has(index)) {
+                                square.classList.add('selected');
+                            }
+                        });
+                    }
+                    
+                    // Add selection mode class
+                    grid.classList.add('selection-mode');
+                })
+                .catch(error => {
+                    console.error('Error fetching selection:', error);
+                    // Fallback: just enable selection mode
+                    grid.classList.add('selection-mode');
+                });
         }
         
         function stopSelectionMode() {
@@ -660,12 +701,14 @@
                 square.classList.remove('selected');
             });
             
+            // Reset range selection state
+            rangeStartIndex = -1;
+            document.querySelectorAll('.range-start').forEach(square => {
+                square.classList.remove('range-start');
+            });
+            
             // Also clear on server
             fetch('/api/clear-beta-selection', { method: 'POST' })
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Selection cleared on server');
-                })
                 .catch(error => console.error('Error clearing selection:', error));
         }
         
@@ -683,11 +726,38 @@
                         selected_indices: Array.from(selectedContexts)
                     })
                 })
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Beta selection updated on server');
-                })
                 .catch(error => console.error('Error updating selection:', error));
+            }
+        }
+        
+        // Select a rectangular range between two indices
+        function selectRange(startIndex, endIndex) {
+            const gridCols = 40; // Must match the grid layout
+            
+            // Convert indices to row/col coordinates
+            const startRow = Math.floor(startIndex / gridCols);
+            const startCol = startIndex % gridCols;
+            const endRow = Math.floor(endIndex / gridCols);
+            const endCol = endIndex % gridCols;
+            
+            // Determine the bounds of the rectangle
+            const minRow = Math.min(startRow, endRow);
+            const maxRow = Math.max(startRow, endRow);
+            const minCol = Math.min(startCol, endCol);
+            const maxCol = Math.max(startCol, endCol);
+            
+            // Select all squares in the rectangular range
+            for (let row = minRow; row <= maxRow; row++) {
+                for (let col = minCol; col <= maxCol; col++) {
+                    const index = row * gridCols + col;
+                    if (index < currentData.length) {
+                        selectedContexts.add(index);
+                        const square = document.querySelector(`[data-index="${index}"]`);
+                        if (square) {
+                            square.classList.add('selected');
+                        }
+                    }
+                }
             }
         }
         
@@ -775,13 +845,41 @@
             const index = parseInt(square.dataset.index);
             if (isNaN(index)) return;
             
-            // Toggle selection
-            if (selectedContexts.has(index)) {
-                selectedContexts.delete(index);
-                square.classList.remove('selected');
+            // Handle range selection with Shift key
+            if (e.shiftKey) {
+                if (rangeStartIndex === -1) {
+                    // First click with Shift - set start point
+                    rangeStartIndex = index;
+                    square.classList.add('range-start');
+                    // Also select this square
+                    selectedContexts.add(index);
+                    square.classList.add('selected');
+                } else {
+                    // Second click with Shift - select range
+                    selectRange(rangeStartIndex, index);
+                    // Clear range start indicator
+                    document.querySelectorAll('.range-start').forEach(sq => {
+                        sq.classList.remove('range-start');
+                    });
+                    rangeStartIndex = -1;
+                }
             } else {
-                selectedContexts.add(index);
-                square.classList.add('selected');
+                // Normal single click - toggle selection
+                if (selectedContexts.has(index)) {
+                    selectedContexts.delete(index);
+                    square.classList.remove('selected');
+                } else {
+                    selectedContexts.add(index);
+                    square.classList.add('selected');
+                }
+                
+                // Reset range selection if we're doing single clicks
+                if (rangeStartIndex !== -1) {
+                    document.querySelectorAll('.range-start').forEach(sq => {
+                        sq.classList.remove('range-start');
+                    });
+                    rangeStartIndex = -1;
+                }
             }
             
             updateSelectedCount();

@@ -1,5 +1,7 @@
 # LaunchDarkly Targeting Visualization
 
+![LaunchDarkly Targeting Visualization Demo](img/DinoGIF-small.gif)
+
 A real-time web-based visualization tool for LaunchDarkly feature flags that shows how targeting rules affect different user contexts. This tool creates 2,000 fake user contexts and displays a grid showing whether each context receives `true` or `false` from your feature flag.
 
 ## Features
