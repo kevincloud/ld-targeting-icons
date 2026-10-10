@@ -1,0 +1,32 @@
+{
+  "seedVersion": 1,
+  "environments": [{ "key": "demo", "name": "Demo", "color": "7B42BC" }],
+  "flags": [
+    {
+      "key": "show-feature",
+      "name": "Show feature",
+      "description": "The boolean the visualization paints: true = green square, false = red square.",
+      "kind": "boolean",
+      "variations": [{ "value": true, "name": "On (green)" }, { "value": false, "name": "Off (red)" }],
+      "defaults": { "onVariation": 0, "offVariation": 1 },
+      "environments": {
+        "demo": {
+          "on": true,
+          "fallthrough": { "variation": 1 },
+          "offVariation": 1,
+          "rules": [
+            {
+              "description": "Premium plans see the feature",
+              "clauses": [{ "contextKind": "user", "attribute": "plan", "op": "in", "values": ["platinum", "diamond"] }],
+              "variation": 0
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "segments": [
+    { "key": "beta-testers", "name": "Beta testers", "environment": "demo", "included": [] }
+  ],
+  "aiConfigs": []
+}

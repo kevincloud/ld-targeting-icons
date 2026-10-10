@@ -94,6 +94,12 @@ def background_polling():
         
         time.sleep(0.5)  # Poll every 500ms
 
+@app.route('/healthz')
+def healthz():
+    # Demo Depot health check: cheap, no LaunchDarkly call
+    return 'ok', 200, {'Content-Type': 'text/plain'}
+
+
 @app.route('/')
 def index():
     return render_template('index.html')

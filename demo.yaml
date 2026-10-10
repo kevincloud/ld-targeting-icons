@@ -1,0 +1,47 @@
+# yaml-language-server: $schema=https://demodepot.launchdarklydemos.com/schemas/demo.schema.json
+schemaVersion: 1
+slug: targeting-icons
+name: Targeting Visualization
+summary: Watch a boolean flag's targeting rules play out live across 2,000 multi-context users as green and red squares.
+owners:
+  - kcochran@launchdarkly.com
+tags: [targeting, progressive-rollouts, feature-management]
+media:
+  cover: ./media/cover.png
+links:
+  talkTrack: https://github.com/kevincloud/ld-targeting-icons/blob/main/ROLLOUT_DEMO.md
+parameters:
+  - name: FLAG_KEY
+    label: Flag to visualize
+    type: string
+    default: show-feature
+runtime:
+  ingress:
+    container: web
+    port: 5000
+    healthCheck: { path: /healthz, intervalSeconds: 10 }
+  containers:
+    - name: web
+      build: { context: . }
+      cpu: 512
+      memory: 1024
+      env:
+        SECRET_KEY: demo-depot-session-key
+capabilities: []
+launchdarkly:
+  seed: ./ld/seed.json
+  apiToken: none
+  inject:
+    sdkKey: SDK_KEY          # the app reads SDK_KEY; the depot injects the instance project's key under that name
+access:
+  default: sso
+  allowPublic: true
+lifecycle:
+  pausable: true
+verify:
+  http:
+    - path: /healthz
+      expectStatus: 200
+      expectBodyContains: ok
+    - path: /api/initial-data
+      expectStatus: 200
