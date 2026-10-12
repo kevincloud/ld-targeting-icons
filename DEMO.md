@@ -12,6 +12,18 @@ A live grid of 2,000 users, each with a user, device, and organization context. 
 
 The `ROLLOUT_DEMO.md` script in the repo automates step 4 against the instance's project if you want a hands-free progressive rollout.
 
+## Seeded targeting (confirm or change)
+
+The seed starts `show-feature` **on** with two rules and a 0% default rollout, so the first launch already paints a slice of the grid:
+
+| Rule | Why |
+| --- | --- |
+| `user.beta` is `true` → on | The Admin panel's "mark as beta" control sets this attribute, so hand-picked squares light up immediately. |
+| `user.plan` in `platinum`, `diamond` → on | One attribute rule to edit live in step 2. |
+| Default rule: 0% / 100% rollout | Seeded as a rollout (not a fixed variation) so `rollout-demo.sh` can raise the weight without converting the default rule first. |
+
+The `beta-testers` segment is created empty for step 2's "add a segment" beat.
+
 ## Notes for the presenter
 
 - The flag to visualize is the `FLAG_KEY` launch parameter (default `show-feature`, created by the seed). Any boolean flag in the instance's project works.

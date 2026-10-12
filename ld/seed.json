@@ -1,23 +1,80 @@
 {
   "seedVersion": 1,
-  "environments": [{ "key": "demo", "name": "Demo", "color": "7B42BC" }],
+  "environments": [
+    {
+      "key": "demo",
+      "name": "Demo",
+      "color": "7B42BC"
+    }
+  ],
   "flags": [
     {
       "key": "show-feature",
       "name": "Show feature",
       "description": "The boolean the visualization paints: true = green square, false = red square.",
       "kind": "boolean",
-      "variations": [{ "value": true, "name": "On (green)" }, { "value": false, "name": "Off (red)" }],
-      "defaults": { "onVariation": 0, "offVariation": 1 },
+      "variations": [
+        {
+          "value": true,
+          "name": "On (green)"
+        },
+        {
+          "value": false,
+          "name": "Off (red)"
+        }
+      ],
+      "defaults": {
+        "onVariation": 0,
+        "offVariation": 1
+      },
       "environments": {
         "demo": {
           "on": true,
-          "fallthrough": { "variation": 1 },
+          "fallthrough": {
+            "rollout": {
+              "contextKind": "user",
+              "variations": [
+                {
+                  "variation": 0,
+                  "weight": 0
+                },
+                {
+                  "variation": 1,
+                  "weight": 100000
+                }
+              ]
+            }
+          },
           "offVariation": 1,
           "rules": [
             {
+              "description": "Beta testers picked in the Admin panel carry user.beta=true",
+              "clauses": [
+                {
+                  "contextKind": "user",
+                  "attribute": "beta",
+                  "op": "in",
+                  "values": [
+                    true
+                  ],
+                  "negate": false
+                }
+              ],
+              "variation": 0
+            },
+            {
               "description": "Premium plans see the feature",
-              "clauses": [{ "contextKind": "user", "attribute": "plan", "op": "in", "values": ["platinum", "diamond"] }],
+              "clauses": [
+                {
+                  "contextKind": "user",
+                  "attribute": "plan",
+                  "op": "in",
+                  "values": [
+                    "platinum",
+                    "diamond"
+                  ]
+                }
+              ],
               "variation": 0
             }
           ]
@@ -26,7 +83,12 @@
     }
   ],
   "segments": [
-    { "key": "beta-testers", "name": "Beta testers", "environment": "demo", "included": [] }
+    {
+      "key": "beta-testers",
+      "name": "Beta testers",
+      "environment": "demo",
+      "included": []
+    }
   ],
   "aiConfigs": []
 }

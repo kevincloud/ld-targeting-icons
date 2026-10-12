@@ -43,5 +43,8 @@ verify:
     - path: /healthz
       expectStatus: 200
       expectBodyContains: ok
+    - path: /
+      expectStatus: 200
+      expectBodyContains: LaunchDarkly Targeting Visualization
     - path: /api/initial-data
       expectStatus: 200

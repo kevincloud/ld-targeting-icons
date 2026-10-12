@@ -5,6 +5,7 @@ import json
 import ldclient
 from ldclient.config import Config
 import os
+import secrets
 import threading
 import time
 import shutil
@@ -16,7 +17,8 @@ from utils.create_context import create_multi_context
 load_dotenv()
 
 app = Flask(__name__, static_folder='static')
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
+# Flask session secret: generated per boot when not supplied; nothing persists across restarts anyway.
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or secrets.token_hex(32)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # LaunchDarkly configuration
