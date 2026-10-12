@@ -5,7 +5,7 @@ on:
     tags: ["v*"]
 jobs:
   publish:
-    uses: launchdarkly-labs/ld-demodepot/.github/workflows/publish-demo.yml@v1
+    uses: launchdarkly-labs/demo-depot-publish/.github/workflows/publish-demo.yml@v1
     permissions:
       id-token: write
       contents: read
