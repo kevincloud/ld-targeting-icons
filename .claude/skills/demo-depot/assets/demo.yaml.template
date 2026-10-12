@@ -1,0 +1,43 @@
+# yaml-language-server: $schema=https://<portal-domain>/schemas/demo.schema.json
+schemaVersion: 1
+slug: REPLACE-kebab-case-slug          # 3–40 chars, a-z 0-9 -
+name: REPLACE Demo Name                # ≤60 chars
+summary: REPLACE one sentence naming the LaunchDarkly capability and the outcome (≤140 chars).
+owners:
+  - REPLACE.owner@launchdarkly.com
+tags: [REPLACE]                        # e.g. ai-configs, guarded-rollouts, experimentation, release-automation
+media:
+  cover: ./media/cover.png
+  # loop: ./media/loop.mp4
+links: {}
+  # talkTrack: https://...
+parameters:
+  - name: CUSTOMER_NAME
+    label: Prospect name
+    type: string
+    default: Acme Corp
+runtime:
+  ingress:
+    container: web
+    port: 3000
+    healthCheck: { path: /healthz }
+  containers:
+    - name: web
+      build: { context: ./web }
+      cpu: 512
+      memory: 1024
+      env: { NODE_ENV: production }
+      # secrets: [THIRD_PARTY_API_KEY]   # set values in the portal, never in the repo
+capabilities: []                        # [bedrock] for LLM calls via the task role
+launchdarkly:
+  seed: ./ld/seed.json
+  apiToken: none                        # project-writer only if the app changes flags itself
+access:
+  default: sso
+  allowPublic: false
+lifecycle:
+  pausable: true
+verify:
+  http:
+    - path: /
+      expectStatus: 200

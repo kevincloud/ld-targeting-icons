@@ -58,3 +58,12 @@ Thumbs.db
 # Documentation
 README.md
 
+# Demo Depot: never bake env files or depot metadata into the image
+.env*
+.dd/
+.claude/
+.github/
+media/
+demo.yaml
+DEMO.md
+ld/
